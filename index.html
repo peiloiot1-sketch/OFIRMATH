@@ -24,8 +24,9 @@
         .pink-card {
             background: white;
             border-radius: 32px;
-            box-shadow: 0 10px 25px rgba(251, 207, 232, 0.3);
+            box-shadow: 0 10px 25px rgba(251, 207, 232, 0.1);
             border: 1px solid rgba(219, 39, 119, 0.1);
+            transition: all 0.3s ease;
         }
 
         .fraction {
@@ -51,7 +52,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: default;
         }
         .animal-slot.unlocked { 
             filter: grayscale(0); 
@@ -67,263 +67,269 @@
             border-radius: 24px;
             border: 2px solid var(--pink-medium);
             overflow: hidden;
-            height: 450px;
+            height: 400px;
         }
         #drawing-canvas {
             cursor: crosshair;
             touch-action: none;
+            width: 100%;
+            height: 100%;
         }
-        .color-dot {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 2px solid white;
-            box-shadow: 0 0 0 2px transparent;
-            transition: transform 0.2s;
-        }
-        .color-dot.active { transform: scale(1.2); box-shadow: 0 0 0 2px var(--pink-dark); }
-
-        .btn-action {
-            background: linear-gradient(135deg, #f472b6 0%, #db2777 100%);
-            color: white;
-            padding: 18px 36px;
-            border-radius: 24px;
-            font-weight: 800;
-            box-shadow: 0 8px 20px rgba(219, 39, 119, 0.3);
-            transition: all 0.2s;
-        }
-        .btn-action:active { transform: scale(0.95); }
-
-        .m-trigger { cursor: pointer; transition: color 0.3s; }
-        .m-trigger:hover { color: var(--pink-dark); }
-
-        .modal-overlay {
-            background: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(5px);
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 1000;
+        .tool-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            display: flex;
             align-items: center;
             justify-content: center;
+            background: white;
+            border: 1px solid #fee2e2;
+            cursor: pointer;
+            transition: all 0.2s;
         }
+        .tool-btn.active {
+            background: #db2777;
+            color: white;
+            border-color: #db2777;
+            box-shadow: 0 4px 12px rgba(219, 39, 119, 0.2);
+        }
+
+        .btn-check-premium {
+            background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+            color: white;
+            padding: 16px 32px;
+            border-radius: 24px;
+            font-weight: 800;
+            box-shadow: 0 10px 20px -5px rgba(219, 39, 119, 0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        .btn-check-premium:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 25px -5px rgba(219, 39, 119, 0.5);
+            filter: brightness(1.1);
+        }
+        .btn-check-premium:active { transform: scale(0.96); }
+
+        .sub-cat-btn {
+            background: white;
+            border: 2px solid #fce7f3;
+            padding: 20px;
+            border-radius: 24px;
+            font-weight: 700;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .sub-cat-btn:hover {
+            border-color: #db2777;
+            background: #fff1f2;
+            transform: scale(1.02);
+        }
+
+        #feedback-icon {
+            font-size: 5rem;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform: scale(0);
+            pointer-events: none;
+            z-index: 50;
+        }
+        #feedback-icon.show { transform: scale(1); }
 
         .hidden-section { display: none !important; }
     </style>
 </head>
 <body>
 
-<header class="max-w-6xl mx-auto px-6 py-12 flex justify-between items-center">
+<header class="max-w-6xl mx-auto px-6 py-10 flex justify-between items-center">
     <div>
         <h1 class="text-4xl font-extrabold tracking-tight">
-            <span id="parent-trigger" class="m-trigger">מ</span>רכז המתמטיקה של אופיר
+            <span id="parent-trigger" class="cursor-pointer">מ</span>רכז המתמטיקה של אופיר
         </h1>
-        <p class="text-pink-400 text-sm font-bold uppercase tracking-widest mt-2">מרכז בקרה אישי • כיתה ד'</p>
+        <p class="text-pink-400 text-sm font-bold uppercase tracking-widest mt-2">מתחם למידה • כיתה ד'</p>
     </div>
-    <div class="flex gap-4">
-        <div class="bg-white px-8 py-4 rounded-3xl border-2 border-pink-50 shadow-sm flex items-center gap-3">
-            <span class="text-pink-500 text-2xl font-black">₪</span>
-            <span id="stat-coins" class="text-3xl font-black">0</span>
-        </div>
+    <div class="bg-white px-8 py-4 rounded-3xl border-2 border-pink-50 shadow-sm flex items-center gap-3">
+        <span class="text-pink-500 text-2xl font-black">₪</span>
+        <span id="stat-coins" class="text-3xl font-black">0</span>
     </div>
 </header>
 
 <main class="max-w-6xl mx-auto px-6 pb-24">
+    
     <section id="dashboard-view">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-            <div onclick="startTask('fractions')" class="pink-card p-10 text-center cursor-pointer hover:-translate-y-2 transition-transform">
+            <div onclick="openSubCategoryMenu('fractions')" class="pink-card p-10 text-center cursor-pointer hover:-translate-y-2">
                 <div class="text-6xl mb-6">🍕</div>
                 <h3 class="text-2xl font-extrabold mb-2">עולם השברים</h3>
-                <div id="prog-fractions" class="text-pink-500 font-bold italic text-sm">0 פתורים</div>
+                <div id="prog-fractions" class="text-pink-400 font-bold text-sm">0 פתורים</div>
             </div>
-            <div onclick="startTask('numbers')" class="pink-card p-10 text-center cursor-pointer hover:-translate-y-2 transition-transform">
+            <div onclick="openSubCategoryMenu('numbers')" class="pink-card p-10 text-center cursor-pointer hover:-translate-y-2">
                 <div class="text-6xl mb-6">🔢</div>
                 <h3 class="text-2xl font-extrabold mb-2">מספרים טבעיים</h3>
-                <div id="prog-numbers" class="text-pink-500 font-bold italic text-sm">0 פתורים</div>
+                <div id="prog-numbers" class="text-pink-400 font-bold text-sm">0 פתורים</div>
             </div>
-            <div onclick="startTask('geometry')" class="pink-card p-10 text-center cursor-pointer hover:-translate-y-2 transition-transform">
+            <div onclick="openSubCategoryMenu('geometry')" class="pink-card p-10 text-center cursor-pointer hover:-translate-y-2">
                 <div class="text-6xl mb-6">📐</div>
                 <h3 class="text-2xl font-extrabold mb-2">גיאומטריה</h3>
-                <div id="prog-geometry" class="text-pink-500 font-bold italic text-sm">0 פתורים</div>
+                <div id="prog-geometry" class="text-pink-400 font-bold text-sm">0 פתורים</div>
             </div>
         </div>
 
         <div class="pink-card p-12">
-            <div class="flex justify-between items-center mb-10">
-                <h2 class="text-3xl font-black text-slate-800">אוסף 30 החיות של אופיר</h2>
-                <div class="bg-pink-50 px-6 py-2 rounded-full text-pink-600 font-bold text-sm">
-                    <span id="total-animals-count">0</span>/30 חיות נפתחו
-                </div>
-            </div>
-            
-            <div class="space-y-12">
-                <div id="shelf-fractions">
-                    <h4 class="text-slate-400 text-[10px] font-black mb-4 uppercase tracking-[0.2em]">חיות השברים (כל 10 שאלות)</h4>
-                    <div class="animal-container flex flex-wrap gap-4"></div>
-                </div>
-                <div id="shelf-numbers">
-                    <h4 class="text-slate-400 text-[10px] font-black mb-4 uppercase tracking-[0.2em]">חיות המספרים (כל 10 שאלות)</h4>
-                    <div class="animal-container flex flex-wrap gap-4"></div>
-                </div>
-                <div id="shelf-geometry">
-                    <h4 class="text-slate-400 text-[10px] font-black mb-4 uppercase tracking-[0.2em]">חיות הגיאומטריה (כל 10 שאלות)</h4>
-                    <div class="animal-container flex flex-wrap gap-4"></div>
-                </div>
-            </div>
+            <h2 class="text-2xl font-black mb-8 text-slate-800">אוסף החיות (נפתחו <span id="total-animals-count">0</span>/30)</h2>
+            <div class="space-y-10" id="animal-shelves"></div>
+        </div>
+    </section>
+
+    <section id="category-menu-view" class="hidden-section">
+        <button onclick="showDashboard()" class="text-pink-400 font-bold mb-8 hover:underline">← חזרה לעולמות</button>
+        <div class="text-center mb-12">
+            <h2 id="menu-title" class="text-4xl font-black mb-4">בחרי סוג משימה</h2>
+            <p class="text-slate-400 font-bold">מה נתרגל היום?</p>
+        </div>
+        <div id="sub-category-list" class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+            <!-- Buttons will be injected here -->
         </div>
     </section>
 
     <section id="exercise-view" class="hidden-section">
-        <button onclick="showDashboard()" class="text-pink-400 font-black mb-10 hover:underline flex items-center gap-2">
-            <span>←</span> חזרה לעולמות
-        </button>
+        <div class="flex justify-between items-center mb-8">
+            <button onclick="openSubCategoryMenu(window.activeSubj)" class="text-pink-400 font-bold hover:underline">← חזרה לבחירה</button>
+            <div id="active-category-label" class="bg-pink-100 text-pink-600 px-4 py-1 rounded-full text-xs font-black uppercase tracking-tighter"></div>
+        </div>
         
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <div class="pink-card p-12 flex flex-col items-center justify-center min-h-[500px] relative">
-                <div id="question-display" class="text-5xl font-bold mb-16 text-center leading-relaxed text-slate-800"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <!-- Question Card -->
+            <div class="pink-card p-12 flex flex-col items-center justify-center min-h-[500px] relative overflow-hidden">
+                <div id="feedback-icon"></div>
+                <div id="question-display" class="text-3xl md:text-4xl font-bold mb-16 text-center leading-relaxed text-slate-800 w-full px-4"></div>
                 
-                <div class="w-full max-w-sm space-y-8">
-                    <input type="text" id="answer-input" placeholder="התשובה שלך" class="w-full text-center text-5xl font-black p-4 border-b-4 border-pink-100 bg-transparent outline-none focus:border-pink-500 transition-colors">
-                    <button onclick="checkAnswer()" class="btn-action w-full text-2xl shadow-lg">בדיקה</button>
+                <div class="w-full max-w-sm space-y-10">
+                    <div class="relative">
+                        <input type="text" id="answer-input" placeholder="התשובה שלך" class="w-full text-center text-4xl font-black p-4 border-b-4 border-pink-100 bg-transparent outline-none focus:border-pink-500 transition-colors">
+                    </div>
+                    
+                    <div class="flex flex-col gap-4">
+                        <button id="btn-check" onclick="checkAnswer()" class="btn-check-premium text-2xl">בדיקה</button>
+                        <button id="btn-next-q" onclick="nextQ()" class="hidden-section bg-emerald-500 text-white p-5 rounded-3xl font-black text-2xl shadow-lg hover:bg-emerald-600 transition-all">שאלה הבאה ←</button>
+                    </div>
                 </div>
 
-                <div id="hint-box" class="hidden-section mt-10 p-6 bg-pink-50 rounded-2xl border-r-4 border-pink-500 w-full animate-pulse">
-                    <p id="hint-text" class="text-xl font-bold text-pink-900"></p>
+                <div id="hint-box" class="hidden-section mt-10 p-6 bg-pink-50 rounded-2xl border-r-4 border-pink-500 w-full">
+                    <p id="hint-text" class="text-lg font-bold text-pink-900"></p>
                 </div>
             </div>
 
+            <!-- Scratchpad Tool -->
             <div class="flex flex-col gap-4">
-                <div class="flex justify-between items-end px-2">
-                    <h4 class="font-black text-xs text-pink-400 uppercase tracking-widest">דף טיוטה וציור חופשי:</h4>
-                    <div class="flex gap-2">
-                        <button onclick="clearCanvas()" class="text-[10px] font-bold bg-white px-3 py-1 rounded-full border border-pink-200 text-pink-400 hover:bg-pink-50 transition-colors">נקי הכל</button>
-                    </div>
+                <div class="flex justify-between items-center px-2">
+                    <h4 class="font-black text-[10px] text-pink-400 uppercase tracking-widest">דף טיוטה:</h4>
+                    <button onclick="clearCanvas()" class="text-[10px] font-bold bg-white px-3 py-1 rounded-full border border-pink-100 hover:bg-pink-50 transition-colors">נקה דף</button>
                 </div>
 
                 <div class="scratch-container shadow-inner">
-                    <div class="absolute top-4 left-4 z-10 flex flex-col gap-3 p-2 bg-white/80 backdrop-blur rounded-full border border-pink-50 shadow-sm">
-                        <div class="color-dot active" style="background: #000000" data-color="#000000"></div>
-                        <div class="color-dot" style="background: #db2777" data-color="#db2777"></div>
-                        <div class="color-dot" style="background: #9333ea" data-color="#9333ea"></div>
-                        <div class="color-dot" style="background: #2563eb" data-color="#2563eb"></div>
-                        <div class="color-dot" style="background: #0d9488" data-color="#0d9488"></div>
-                        <div class="color-dot" style="background: #16a34a" data-color="#16a34a"></div>
-                        <div class="color-dot" style="background: #ca8a04" data-color="#ca8a04"></div>
+                    <div class="absolute top-4 left-4 z-10 flex flex-col gap-3 p-2 bg-white/90 backdrop-blur rounded-2xl border border-pink-50 shadow-sm">
+                        <button id="tool-pencil" class="tool-btn active" onclick="setTool('pencil')">✏️</button>
+                        <button id="tool-eraser" class="tool-btn" onclick="setTool('eraser')">🧼</button>
+                        <div class="h-[1px] bg-pink-100 mx-2"></div>
+                        <div class="flex flex-col gap-2 px-1">
+                            <div class="w-6 h-6 rounded-full cursor-pointer bg-black" onclick="setColor('#000000')"></div>
+                            <div class="w-6 h-6 rounded-full cursor-pointer bg-pink-500" onclick="setColor('#db2777')"></div>
+                            <div class="w-6 h-6 rounded-full cursor-pointer bg-blue-500" onclick="setColor('#2563eb')"></div>
+                        </div>
                     </div>
                     <canvas id="drawing-canvas"></canvas>
-                </div>
-                
-                <div class="mt-4">
-                    <h4 class="font-black text-xs text-pink-400 mb-3 uppercase tracking-widest">עזרת חיות זמינה:</h4>
-                    <div id="active-helpers" class="flex gap-4"></div>
                 </div>
             </div>
         </div>
     </section>
 
     <section id="parent-view" class="hidden-section">
-        <div class="max-w-xl mx-auto pink-card p-12">
-            <div class="text-center mb-10">
-                <h2 class="text-3xl font-black">ניהול הורים</h2>
-                <p class="text-slate-400 text-sm font-bold uppercase tracking-widest mt-1">Math Control Panel</p>
-            </div>
-            
-            <div id="pending-requests" class="bg-rose-50 p-10 rounded-3xl text-center border-2 border-dashed border-rose-200">
+        <div class="max-w-xl mx-auto pink-card p-12 text-center">
+            <h2 class="text-3xl font-black mb-6">מרכז בקרה להורים</h2>
+            <div id="pending-requests" class="bg-rose-50 p-10 rounded-3xl border-2 border-dashed border-rose-200">
                 <p class="text-rose-300 italic font-bold">אין בקשות עזרה כרגע...</p>
             </div>
-            
-            <button onclick="showDashboard()" class="mt-12 block w-full text-center text-slate-400 text-sm font-bold hover:underline cursor-pointer">סגירת ניהול</button>
+            <button onclick="showDashboard()" class="mt-8 text-slate-400 font-bold underline text-sm">חזרה למסך אופיר</button>
         </div>
     </section>
 </main>
-
-<div id="animal-modal" class="modal-overlay" onclick="closeAnimalModal()">
-    <div class="pink-card p-12 max-w-sm w-full text-center relative mx-6" onclick="event.stopPropagation()">
-        <div id="modal-emoji" class="text-8xl mb-8"></div>
-        <h3 id="modal-name" class="text-3xl font-black mb-2 text-slate-800"></h3>
-        <p id="modal-trait" class="text-pink-500 font-bold mb-6 italic text-lg"></p>
-        <div class="bg-pink-50/50 p-6 rounded-2xl">
-            <p id="modal-desc" class="text-slate-600 leading-relaxed text-right"></p>
-        </div>
-        <button onclick="closeAnimalModal()" class="mt-10 text-slate-400 font-bold underline text-sm">סגירה</button>
-    </div>
-</div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getFirestore, doc, onSnapshot, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // Configuration
     const firebaseConfig = JSON.parse(__firebase_config);
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const dataRef = doc(db, 'apps', 'ofir_math_portal_vFinal');
 
-    // Animal Data & Traits
-    const animalData = {
-        fractions: [
-            { e: "🦉", n: "ינשוף השברים", t: "רואה הכל", d: "אוהב לעזור עם מכנים שונים. הוא יודע להכפיל את המכנה והמונה יחד כדי ליצור שברים שווים." },
-            { e: "🐧", n: "פינגווין הקרח", t: "מקרר מצבים", d: "יודע שהשוואת שברים זה כמו לחלק עוגה בקרח - ככל שהמכנה קטן יותר, החלק גדול יותר!" },
-            { e: "🐤", n: "אפרוח הצהוב", t: "סקרן וזריז", d: "תמיד שואל: אם יש לי חצי, וכופלים ב-3, כמה אפרוחים יהיו? (3 חצאים!)." },
-            { e: "🦆", n: "ברווז המים", t: "שוחה בזרם", d: "מומחה לחיבור שברים עם מכנה זהה. הוא פשוט מחבר את המונים ושוחה הלאה." },
-            { e: "🦢", n: "ברבור לבן", t: "אלגנטי ומדויק", d: "יודע לצמצם שברים לצורה היפה והפשוטה ביותר שלהם." },
-            { e: "🦩", n: "פלאמינגו", t: "עומד על רגל אחת", d: "מבין בשברים מדומים - כשהמונה כבד יותר מהמכנה, הוא מאזן הכל." },
-            { e: "🦜", n: "תוכי צבעוני", t: "חוזר על הכל", d: "עוזר לזכור את חוקי החשבון בשברים בעל פה." },
-            { e: "🦚", n: "טווס גאה", t: "מרהיב ביופיו", d: "מומחה לשברים עשרוניים שהופכים לשברים רגילים בסטייל." },
-            { e: "🕊️", n: "יונת שלום", t: "שקטה ורגועה", d: "עוזרת למצוא את המכנה המשותף הקטן ביותר בלי להתווכח." },
-            { e: "🦅", n: "עיט זהוב", t: "חד עין", d: "רואה את התוצאה של כפל שבר בשבר מקילומטרים." }
-        ],
-        numbers: [
-            { e: "🦊", n: "שועל חכם", t: "מפרק בעיות", d: "מומחה לחוק הפילוג. הוא יודע לפרק 12 ל-10 ועוד 2 כדי שיהיה קל לכפול." },
-            { e: "🐺", n: "זאב הערבות", t: "עקבי ומסודר", d: "יודע לבצע חיבור במאונך בלי לשכוח את ה'שארית' הקטנה למעלה." },
-            { e: "🐶", n: "כלבלב נאמן", t: "תמיד בשמחה", d: "מומחה לכפל בעשרות שלמות. פשוט מוסיפים אפס בסוף והזנב מכשכש!" },
-            { e: "🐱", n: "חתולת רחוב", t: "זריזה וערנית", d: "מחשבת מהר סדר פעולות חשבון - קודם כפל וחילוק, בסוף חיבור וחיסור." },
-            { e: "🦁", n: "אריה אמיץ", t: "מנהיג חזק", d: "לא מפחד משאלות מילוליות ארוכות. הוא מוצא את המספרים החשובים מיד." },
-            { e: "🐯", n: "נמר פסים", t: "מהיר כברק", d: "יודע לפתור חילוק ארוך בקפיצות של נמר." },
-            { e: "🐆", n: "צ'יטה", t: "שיא המהירות", d: "מחשבת כפל בעל פה תוך שניות לפני שמישהו מספיק להגיד 'חשבון'." },
-            { e: "🐻", n: "דוב גדול", t: "חזק ויציב", d: "מתמודד עם מספרים של אלפים ורבבות בלי להזיע." },
-            { e: "🐼", n: "פנדה רגועה", t: "סבלנית מאוד", d: "מומחית לחיסור עם 'פריטה'. היא עושה הכל לאט, שלב אחרי שלב." },
-            { e: "🐨", n: "קואלה", t: "מתוקה וחכמה", d: "אוהבת למיין מספרים לזוגיים ואי זוגיים בזמן שהיא נחה." }
-        ],
-        geometry: [
-            { e: "🐘", n: "פיל המהנדס", t: "בונה חזק", d: "יודע לפרק מצולע מורכב לשני מלבנים פשוטים כדי לחשב שטח." },
-            { e: "🦏", n: "קרנף חזק", t: "מדויק מאוד", d: "מומחה למציאת היקף - הוא פשוט הולך מסביב לכל הקירות ומודד כל סנטימטר." },
-            { e: "🦛", n: "היפופוטם", t: "רחב וגדול", d: "מומחה לשטח מלבן. 'אורך כפול רוחב' זה השיר האהוב עליו." },
-            { e: "🦒", n: "ג'ירפה גבוהה", t: "רואה רחוק", d: "מזהה זוויות ישרות בקלות מקצה הצוואר הארוך שלה." },
-            { e: "ZEBRA", n: "זברה", t: "מסודרת בפסים", d: "יודעת שבריבוע כל הצלעות שוות בדיוק, כמו הפסים השחורים והלבנים שלה." },
-            { e: "🐪", n: "גמל", t: "סבלני במדבר", d: "עוזר למדוד מרחקים ארוכים ושטחים גדולים בלי להתעייף." },
-            { e: "🦌", n: "צבי קל רגליים", t: "קליל ומהיר", d: "מבין איך לחשב שטח של משולש בתוך מלבן במהירות הבזק." },
-            { e: "🐇", n: "ארנב קופצני", t: "חרוץ", d: "סופר יחידות שטח בריבועים קטנים בקפיצות מדויקות." },
-            { e: "🐭", n: "עכבר קטן", t: "פיצפון וחכם", d: "מומחה לחישוב שטחים של צורות קטנות ומורכבות בפינות החדר." },
-            { e: "🐿️", n: "סנאי אספן", t: "אוסף הכל", d: "אוסף את כל אורכי הצלעות יחד כדי למצוא את ההיקף הכולל של הצורה." }
-        ]
-    };
-
-    const questions = {
-        fractions: [
-            { q: "1/4 + 2/4", a: "3/4", h: "במכנים זהים, מחברים רק את המונים (למעלה)." },
-            { q: "מה גדול: 1/2 או 1/3?", a: "1/2", h: "חשבי על פיצה: חצי פיצה גדולה יותר משליש פיצה." },
-            { q: "4 כפול 1/5", a: "4/5", h: "כופלים את המספר השלם (4) רק במונה (1)." },
-            { q: "1 - 1/3", a: "2/3", h: "שלם אחד הוא כמו 3/3. פשוט חסרי שליש אחד." }
-        ],
-        numbers: [
-            { q: "30 * 50", a: "1500", h: "כפלי 3 ב-5 והוסיפי שני אפסים בסוף." },
-            { q: "12 * 6 (פילוג)", a: "72", h: "פרקי את 12 ל-10 ול-2. עשי 10*6 ועוד 2*6." },
-            { q: "40 - 10 / 2", a: "35", h: "זכרי סדר פעולות: קודם כל עושים את החילוק!" }
-        ],
-        geometry: [
-            { q: "מלבן: אורך 6, רוחב 4. מה השטח?", a: "24", h: "שטח מלבן = אורך כפול רוחב." },
-            { q: "ריבוע: צלע 5. מה ההיקף?", a: "20", h: "היקף ריבוע = אורך הצלע כפול 4." }
-        ]
+    // Questions Data with Sub-Categories
+    const questionsData = {
+        fractions: {
+            title: "עולם השברים",
+            subs: {
+                word: { label: "שאלות מילוליות", items: [
+                    { q: "לאופיר הייתה עוגה שלמה. היא אכלה 1/4 עוגה. כמה עוגה נשארה לה?", a: "3/4", h: "שלם פחות רבע זה כמו 4 רבעים פחות רבע אחד." },
+                    { q: "בכיתה יש 20 ילדים. חצי מהם בנות. כמה בנות יש בכיתה?", a: "10", h: "חצי מתוך 20 זה כמו 20 חלקי 2." },
+                    { q: "אמא קנתה 2 חבילות שוקולד. בכל חבילה יש 4 שורות. אופיר אכלה 1/4 מכל השוקולד. כמה שורות היא אכלה?", a: "2", h: "בסה'כ יש 8 שורות. רבע מתוך 8 זה 2." }
+                ]},
+                basic: { label: "חישובים בסיסיים", items: [
+                    { q: "1/5 + 2/5", a: "3/5", h: "חברי רק את המונים (המספרים למעלה)." },
+                    { q: "3 כפול 1/4", a: "3/4", h: "מספר שלם כפול המונה." },
+                    { q: "1 - 1/3", a: "2/3", h: "הפכי את השלם ל-3/3." }
+                ]},
+                compare: { label: "השוואת שברים", items: [
+                    { q: "מה גדול יותר: 1/2 או 1/4?", a: "1/2", h: "ככל שהמכנה קטן יותר (מחלקים לפחות חלקים), כל חלק גדול יותר!" },
+                    { q: "מה גדול יותר: 3/5 או 1/5?", a: "3/5", h: "במכנים זהים, המונה הגדול מנצח." }
+                ]}
+            }
+        },
+        numbers: {
+            title: "מספרים טבעיים",
+            subs: {
+                distributive: { label: "חוק הפילוג", items: [
+                    { q: "12 * 4 (פרקי את 12 ל-10 ו-2)", a: "48", h: "חשבי 10*4 ועוד 2*4." },
+                    { q: "15 * 3", a: "45", h: "חשבי 10*3 ועוד 5*3." }
+                ]},
+                word: { label: "שאלות מילוליות", items: [
+                    { q: "לדני היו 100 שקלים. הוא קנה 3 חולצות ב-30 שקלים כל אחת. כמה עודף נשאר לו?", a: "10", h: "קודם חשבי כמה עלו כל החולצות, ואז חסרי מה-100." },
+                    { q: "בגינה 5 שורות של פרחים. בכל שורה 12 פרחים. כמה פרחים יש בסה'כ?", a: "60", h: "תרגיל כפל פשוט: 5 כפול 12." }
+                ]},
+                order: { label: "סדר פעולות", items: [
+                    { q: "20 + 10 / 2", a: "25", h: "חילוק קודם לחיבור!" },
+                    { q: "4 * 5 + 3", a: "23", h: "כפל קודם לחיבור." }
+                ]}
+            }
+        },
+        geometry: {
+            title: "גיאומטריה",
+            subs: {
+                area: { label: "חישובי שטח", items: [
+                    { q: "מלבן באורך 8 ס'מ ורוחב 3 ס'מ. מה השטח?", a: "24", h: "שטח מלבן = אורך כפול רוחב." },
+                    { q: "ריבוע עם צלע באורך 6 ס'מ. מה השטח?", a: "36", h: "שטח ריבוע = צלע כפול עצמה." }
+                ]},
+                perimeter: { label: "חישובי היקף", items: [
+                    { q: "מלבן באורך 5 ורוחב 2. מה ההיקף?", a: "14", h: "סכום כל ארבע הצלעות: 5+2+5+2." },
+                    { q: "ריבוע עם צלע באורך 4. מה ההיקף?", a: "16", h: "צלע כפול 4." }
+                ]}
+            }
+        }
     };
 
     window.state = { coins: 0, stats: { fractions: 0, numbers: 0, geometry: 0 }, pending: null, hintActive: false };
+    window.activeSubj = '';
+    window.activeSubCat = '';
+    window.currentQ = null;
 
     const canvas = document.getElementById('drawing-canvas');
     const ctx = canvas.getContext('2d');
     let isDrawing = false;
     let currentColor = '#000000';
+    let currentLineWidth = 3;
 
     function initCanvas() {
         const parent = canvas.parentElement;
@@ -331,129 +337,81 @@
         canvas.height = parent.clientHeight;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.lineWidth = 3;
     }
 
-    function startDrawing(e) {
+    window.setTool = (tool) => {
+        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`tool-${tool}`).classList.add('active');
+        if (tool === 'eraser') {
+            ctx.globalCompositeOperation = 'destination-out';
+            currentLineWidth = 20;
+        } else {
+            ctx.globalCompositeOperation = 'source-over';
+            currentLineWidth = 3;
+        }
+    };
+
+    window.setColor = (color) => {
+        currentColor = color;
+        setTool('pencil');
+    };
+
+    function handleStart(e) {
         isDrawing = true;
         const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX || e.touches[0].clientX) - rect.left;
-        const y = (e.clientY || e.touches[0].clientY) - rect.top;
+        const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
+        const y = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
         ctx.beginPath();
         ctx.moveTo(x, y);
     }
 
-    function draw(e) {
+    function handleMove(e) {
         if (!isDrawing) return;
         const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX || e.touches[0].clientX) - rect.left;
-        const y = (e.clientY || e.touches[0].clientY) - rect.top;
+        const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
+        const y = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
         ctx.strokeStyle = currentColor;
+        ctx.lineWidth = currentLineWidth;
         ctx.lineTo(x, y);
         ctx.stroke();
     }
 
-    function stopDrawing() { isDrawing = false; }
     window.clearCanvas = () => ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    async function init() {
-        onSnapshot(dataRef, (snap) => {
-            if (snap.exists()) {
-                window.state = { ...window.state, ...snap.data() };
-                render();
-            } else {
-                setDoc(dataRef, { coins: 0, stats: { fractions: 0, numbers: 0, geometry: 0 }, pending: null, hintActive: false });
-            }
-        });
+    window.showDashboard = () => switchView('dashboard-view');
 
-        initCanvas();
-        window.addEventListener('resize', initCanvas);
-
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', draw);
-        window.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e); });
-        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
-        canvas.addEventListener('touchend', stopDrawing);
-
-        document.querySelectorAll('.color-dot').forEach(dot => {
-            dot.onclick = (e) => {
-                document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
-                dot.classList.add('active');
-                currentColor = dot.dataset.color;
-            };
-        });
-    }
-
-    function render() {
-        document.getElementById('stat-coins').innerText = window.state.coins;
-        let total = 0;
-        
-        Object.keys(animalData).forEach(subj => {
-            const count = window.state.stats[subj];
-            document.getElementById(`prog-${subj}`).innerText = `${count} תרגילים פתורים`;
-            
-            const unlockedCount = Math.floor(count / 10);
-            total += Math.min(unlockedCount, 10);
-            
-            const container = document.querySelector(`#shelf-${subj} .animal-container`);
-            container.innerHTML = '';
-            animalData[subj].forEach((data, i) => {
-                const div = document.createElement('div');
-                div.className = `animal-slot ${i < unlockedCount ? 'unlocked' : ''}`;
-                div.innerText = data.e;
-                if (i < unlockedCount) div.onclick = () => openAnimalModal(subj, i);
-                container.appendChild(div);
-            });
-        });
-
-        document.getElementById('total-animals-count').innerText = total;
-
-        const hintBox = document.getElementById('hint-box');
-        if (window.state.hintActive) {
-            hintBox.classList.remove('hidden-section');
-            document.getElementById('hint-text').innerText = window.currentQ.h;
-        } else {
-            hintBox.classList.add('hidden-section');
-        }
-
-        renderParentView();
-        renderActiveHelpers();
-    }
-
-    function renderActiveHelpers() {
-        const container = document.getElementById('active-helpers');
-        container.innerHTML = '';
-        if (!window.activeSubj) return;
-        
-        const unlockedCount = Math.floor(window.state.stats[window.activeSubj] / 10);
-        if (unlockedCount === 0) {
-            container.innerHTML = `<span class="text-slate-300 text-[10px] font-bold">פתרי 10 תרגילים כדי לפתוח עוזר ראשון</span>`;
-            return;
-        }
-
-        animalData[window.activeSubj].slice(0, unlockedCount).forEach(data => {
-            const btn = document.createElement('button');
-            btn.className = "bg-white w-14 h-14 rounded-2xl border-2 border-pink-50 shadow-sm text-2xl hover:scale-110 transition-transform active:bg-pink-50 flex items-center justify-center";
-            btn.innerText = data.e;
-            btn.title = `בקשי עזרה מ${data.n}`;
-            btn.onclick = () => requestHint(data.e);
-            container.appendChild(btn);
-        });
-    }
-
-    window.startTask = (subj) => {
+    window.openSubCategoryMenu = (subj) => {
         window.activeSubj = subj;
+        const data = questionsData[subj];
+        document.getElementById('menu-title').innerText = data.title;
+        const list = document.getElementById('sub-category-list');
+        list.innerHTML = '';
+        
+        Object.keys(data.subs).forEach(key => {
+            const btn = document.createElement('div');
+            btn.className = 'sub-cat-btn';
+            btn.innerHTML = `<div class="text-xl">${data.subs[key].label}</div>`;
+            btn.onclick = () => startTask(subj, key);
+            list.appendChild(btn);
+        });
+
+        switchView('category-menu-view');
+    };
+
+    window.startTask = (subj, subCat) => {
+        window.activeSubj = subj;
+        window.activeSubCat = subCat;
+        document.getElementById('active-category-label').innerText = `${questionsData[subj].title} > ${questionsData[subj].subs[subCat].label}`;
         switchView('exercise-view');
         nextQ();
         setTimeout(initCanvas, 100);
     };
 
-    function nextQ() {
-        const list = questions[window.activeSubj];
-        window.currentQ = list[Math.floor(Math.random() * list.length)];
+    window.nextQ = () => {
+        const pool = questionsData[window.activeSubj].subs[window.activeSubCat].items;
+        window.currentQ = pool[Math.floor(Math.random() * pool.length)];
         
-        // Render Vertical Fractions
+        // Render Fractions support in questions
         let html = window.currentQ.q.split(' ').map(p => {
             if (p.includes('/')) {
                 const [n, d] = p.split('/');
@@ -464,69 +422,94 @@
 
         document.getElementById('question-display').innerHTML = html;
         document.getElementById('answer-input').value = '';
+        document.getElementById('answer-input').disabled = false;
+        document.getElementById('btn-check').classList.remove('hidden-section');
+        document.getElementById('btn-next-q').classList.add('hidden-section');
+        document.getElementById('feedback-icon').classList.remove('show');
+        
         updateDoc(dataRef, { hintActive: false, pending: null });
-    }
+    };
 
     window.checkAnswer = async () => {
         const input = document.getElementById('answer-input');
-        if (input.value.trim() === window.currentQ.a) {
-            input.style.color = '#10b981';
+        const feedback = document.getElementById('feedback-icon');
+        const val = input.value.trim();
+
+        if (val === window.currentQ.a) {
+            feedback.innerText = '✨';
+            feedback.classList.add('show');
+            input.disabled = true;
+            document.getElementById('btn-check').classList.add('hidden-section');
+            document.getElementById('btn-next-q').classList.remove('hidden-section');
+
             const newStats = { ...window.state.stats };
             newStats[window.activeSubj]++;
             await updateDoc(dataRef, { coins: window.state.coins + 15, stats: newStats });
-            setTimeout(() => {
-                input.style.color = 'inherit';
-                nextQ();
-                clearCanvas();
-            }, 1000);
         } else {
+            feedback.innerText = '❌';
+            feedback.classList.add('show');
             input.classList.add('animate-bounce');
-            input.style.color = '#ef4444';
-            setTimeout(() => { input.classList.remove('animate-bounce'); input.style.color = 'inherit'; }, 500);
+            setTimeout(() => {
+                input.classList.remove('animate-bounce');
+                feedback.classList.remove('show');
+            }, 800);
         }
     };
-
-    async function requestHint(emoji) {
-        await updateDoc(dataRef, { pending: emoji });
-    }
-
-    function renderParentView() {
-        const container = document.getElementById('pending-requests');
-        if (window.state.pending) {
-            container.innerHTML = `
-                <div class="space-y-8">
-                    <div class="text-8xl animate-bounce">${window.state.pending}</div>
-                    <p class="font-bold text-2xl text-slate-700 leading-tight">אופיר מבקשת עזרה!<br><span class="text-pink-500">לאשר לה רמז לתרגיל?</span></p>
-                    <button onclick="approveHint()" class="btn-action w-full py-6 text-2xl">אשרי רמז עכשיו</button>
-                </div>
-            `;
-        } else {
-            container.innerHTML = `<p class="text-rose-300 italic font-bold">ממתין לבקשות מהשטח...</p>`;
-        }
-    }
-
-    window.approveHint = async () => {
-        await updateDoc(dataRef, { hintActive: true, pending: null });
-    };
-
-    window.openAnimalModal = (subj, i) => {
-        const data = animalData[subj][i];
-        document.getElementById('modal-emoji').innerText = data.e;
-        document.getElementById('modal-name').innerText = data.n;
-        document.getElementById('modal-trait').innerText = data.t;
-        document.getElementById('modal-desc').innerText = data.d;
-        document.getElementById('animal-modal').style.display = 'flex';
-    };
-
-    window.closeAnimalModal = () => document.getElementById('animal-modal').style.display = 'none';
 
     function switchView(id) {
         document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden-section'));
         document.getElementById(id).classList.remove('hidden-section');
     }
 
-    window.showDashboard = () => switchView('dashboard-view');
-    document.getElementById('parent-trigger').onclick = () => switchView('parent-view');
+    async function init() {
+        onSnapshot(dataRef, (snap) => {
+            if (snap.exists()) {
+                window.state = snap.data();
+                renderProgression();
+            } else {
+                setDoc(dataRef, { coins: 0, stats: { fractions: 0, numbers: 0, geometry: 0 }, pending: null, hintActive: false });
+            }
+        });
+
+        canvas.addEventListener('mousedown', handleStart);
+        canvas.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', () => isDrawing = false);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleStart(e); });
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleMove(e); });
+        canvas.addEventListener('touchend', () => isDrawing = false);
+
+        document.getElementById('parent-trigger').onclick = () => switchView('parent-view');
+    }
+
+    function renderProgression() {
+        document.getElementById('stat-coins').innerText = window.state.coins;
+        let totalUnlocked = 0;
+        const shelfContainer = document.getElementById('animal-shelves');
+        shelfContainer.innerHTML = '';
+
+        Object.keys(questionsData).forEach(subj => {
+            const count = window.state.stats[subj] || 0;
+            document.getElementById(`prog-${subj}`).innerText = `${count} תרגילים פתורים`;
+            
+            const unlockedCount = Math.floor(count / 10);
+            totalUnlocked += Math.min(unlockedCount, 10);
+
+            // Simple shelf rendering
+            const shelf = document.createElement('div');
+            shelf.innerHTML = `<h4 class="text-[10px] text-slate-400 font-bold uppercase mb-4 tracking-widest">${questionsData[subj].title}</h4><div class="flex flex-wrap gap-4" id="shelf-${subj}"></div>`;
+            shelfContainer.appendChild(shelf);
+
+            const icons = ["🦉", "🐧", "🐤", "🦆", "🦢", "🦩", "🦜", "🦚", "🕊️", "🦅"];
+            const iconsContainer = shelf.querySelector(`#shelf-${subj}`);
+            for(let i=0; i<10; i++) {
+                const slot = document.createElement('div');
+                slot.className = `animal-slot ${i < unlockedCount ? 'unlocked' : ''}`;
+                slot.innerText = icons[i];
+                iconsContainer.appendChild(slot);
+            }
+        });
+        document.getElementById('total-animals-count').innerText = totalUnlocked;
+    }
 
     init();
 </script>
