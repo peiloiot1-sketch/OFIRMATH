@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מרכז המתמטיקה של אופיר</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --pink-light: #fff1f2;
+            --pink-medium: #fce7f3;
+            --pink-dark: #db2777;
+            --text-main: #4d061e;
+        }
+        body { 
+            font-family: 'Assistant', sans-serif; 
+            background-color: var(--pink-light); 
+            color: var(--text-main);
+            margin: 0;
+            overflow-x: hidden;
+        }
+        
+        .pink-card {
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 10px 25px rgba(251, 207, 232, 0.3);
+            border: 1px solid rgba(219, 39, 119, 0.1);
+        }
+
+        .fraction {
+            display: inline-flex;
+            flex-direction: column;
+            vertical-align: middle;
+            align-items: center;
+            padding: 0 8px;
+            font-weight: 800;
+        }
+        .fraction .num { border-bottom: 3px solid var(--text-main); padding: 0 4px; }
+        .fraction .den { padding: 0 4px; }
+
+        .animal-slot {
+            font-size: 2.5rem;
+            filter: grayscale(1);
+            opacity: 0.15;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            width: 70px;
+            height: 70px;
+            background: #fff;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: default;
+        }
+        .animal-slot.unlocked { 
+            filter: grayscale(0); 
+            opacity: 1; 
+            cursor: pointer;
+            box-shadow: 0 6px 15px rgba(219, 39, 119, 0.1);
+        }
+        .animal-slot.unlocked:hover { transform: scale(1.1) rotate(5deg); }
+
+        .scratch-container {
+            position: relative;
+            background: white;
+            border-radius: 24px;
+            border: 2px solid var(--pink-medium);
+            overflow: hidden;
+            height: 450px;
+        }
+        #drawing-canvas {
+            cursor: crosshair;
+            touch-action: none;
+        }
+        .color-dot {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 0 0 2px transparent;
+            transition: transform 0.2s;
+        }
+        .color-dot.active { transform: scale(1.2); box-shadow: 0 0 0 2px var(--pink-dark); }
+
+        .btn-action {
+            background: linear-gradient(135deg, #f472b6 0%, #db2777 100%);
+            color: white;
+            padding: 18px 36px;
+            border-radius: 24px;
+            font-weight: 800;
+            box-shadow: 0 8px 20px rgba(219, 39, 119, 0.3);
+            transition: all 0.2s;
+        }
+        .btn-action:active { transform: scale(0.95); }
+
+        .m-trigger { cursor: pointer; transition: color 0.3s; }
+        .m-trigger:hover { color: var(--pink-dark); }
+
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(5px);
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hidden-section { display: none !important; }
+    </style>
+</head>
+<body>
+
+<header class="max-w-6xl mx-auto px-6 py-12 flex justify-between items-center">
+    <div>
+        <h1 class="text-4xl font-extrabold tracking-tight">
+            <span id="parent-trigger" class="m-trigger">מ</span>רכז המתמטיקה של אופיר
+        </h1>
+        <p class="text-pink-400 text-sm font-bold uppercase tracking-widest mt-2">מרכז בקרה אישי • כיתה ד'</p>
+    </div>
+    <div class="flex gap-4">
+        <div class="bg-white px-8 py-4 rounded-3xl border-2 border-pink-50 shadow-sm flex items-center gap-3">
+            <span class="text-pink-500 text-2xl font-black">₪</span>
+            <span id="stat-coins" class="text-3xl font-black">0</span>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-6 pb-24">
+    <section id="dashboard-view">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            <div onclick="startTask('fractions')" class="pink-card p-10 text-center cursor-pointer hover:-translate-y-2 transition-transform">
+                <div class="text-6xl mb-6">🍕</div>
+                <h3 class="text-2xl font-extrabold mb-2">עולם השברים</h3>
+                <div id="prog-fractions" class="text-pink-500 font-bold italic text-sm">0 פתורים</div>
+            </div>
+            <div onclick="startTask('numbers')" class="pink-card p-10 text-center cursor-pointer hover:-translate-y-2 transition-transform">
+                <div class="text-6xl mb-6">🔢</div>
+                <h3 class="text-2xl font-extrabold mb-2">מספרים טבעיים</h3>
+                <div id="prog-numbers" class="text-pink-500 font-bold italic text-sm">0 פתורים</div>
+            </div>
+            <div onclick="startTask('geometry')" class="pink-card p-10 text-center cursor-pointer hover:-translate-y-2 transition-transform">
+                <div class="text-6xl mb-6">📐</div>
+                <h3 class="text-2xl font-extrabold mb-2">גיאומטריה</h3>
+                <div id="prog-geometry" class="text-pink-500 font-bold italic text-sm">0 פתורים</div>
+            </div>
+        </div>
+
+        <div class="pink-card p-12">
+            <div class="flex justify-between items-center mb-10">
+                <h2 class="text-3xl font-black text-slate-800">אוסף 30 החיות של אופיר</h2>
+                <div class="bg-pink-50 px-6 py-2 rounded-full text-pink-600 font-bold text-sm">
+                    <span id="total-animals-count">0</span>/30 חיות נפתחו
+                </div>
+            </div>
+            
+            <div class="space-y-12">
+                <div id="shelf-fractions">
+                    <h4 class="text-slate-400 text-[10px] font-black mb-4 uppercase tracking-[0.2em]">חיות השברים (כל 10 שאלות)</h4>
+                    <div class="animal-container flex flex-wrap gap-4"></div>
+                </div>
+                <div id="shelf-numbers">
+                    <h4 class="text-slate-400 text-[10px] font-black mb-4 uppercase tracking-[0.2em]">חיות המספרים (כל 10 שאלות)</h4>
+                    <div class="animal-container flex flex-wrap gap-4"></div>
+                </div>
+                <div id="shelf-geometry">
+                    <h4 class="text-slate-400 text-[10px] font-black mb-4 uppercase tracking-[0.2em]">חיות הגיאומטריה (כל 10 שאלות)</h4>
+                    <div class="animal-container flex flex-wrap gap-4"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="exercise-view" class="hidden-section">
+        <button onclick="showDashboard()" class="text-pink-400 font-black mb-10 hover:underline flex items-center gap-2">
+            <span>←</span> חזרה לעולמות
+        </button>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <div class="pink-card p-12 flex flex-col items-center justify-center min-h-[500px] relative">
+                <div id="question-display" class="text-5xl font-bold mb-16 text-center leading-relaxed text-slate-800"></div>
+                
+                <div class="w-full max-w-sm space-y-8">
+                    <input type="text" id="answer-input" placeholder="התשובה שלך" class="w-full text-center text-5xl font-black p-4 border-b-4 border-pink-100 bg-transparent outline-none focus:border-pink-500 transition-colors">
+                    <button onclick="checkAnswer()" class="btn-action w-full text-2xl shadow-lg">בדיקה</button>
+                </div>
+
+                <div id="hint-box" class="hidden-section mt-10 p-6 bg-pink-50 rounded-2xl border-r-4 border-pink-500 w-full animate-pulse">
+                    <p id="hint-text" class="text-xl font-bold text-pink-900"></p>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-4">
+                <div class="flex justify-between items-end px-2">
+                    <h4 class="font-black text-xs text-pink-400 uppercase tracking-widest">דף טיוטה וציור חופשי:</h4>
+                    <div class="flex gap-2">
+                        <button onclick="clearCanvas()" class="text-[10px] font-bold bg-white px-3 py-1 rounded-full border border-pink-200 text-pink-400 hover:bg-pink-50 transition-colors">נקי הכל</button>
+                    </div>
+                </div>
+
+                <div class="scratch-container shadow-inner">
+                    <div class="absolute top-4 left-4 z-10 flex flex-col gap-3 p-2 bg-white/80 backdrop-blur rounded-full border border-pink-50 shadow-sm">
+                        <div class="color-dot active" style="background: #000000" data-color="#000000"></div>
+                        <div class="color-dot" style="background: #db2777" data-color="#db2777"></div>
+                        <div class="color-dot" style="background: #9333ea" data-color="#9333ea"></div>
+                        <div class="color-dot" style="background: #2563eb" data-color="#2563eb"></div>
+                        <div class="color-dot" style="background: #0d9488" data-color="#0d9488"></div>
+                        <div class="color-dot" style="background: #16a34a" data-color="#16a34a"></div>
+                        <div class="color-dot" style="background: #ca8a04" data-color="#ca8a04"></div>
+                    </div>
+                    <canvas id="drawing-canvas"></canvas>
+                </div>
+                
+                <div class="mt-4">
+                    <h4 class="font-black text-xs text-pink-400 mb-3 uppercase tracking-widest">עזרת חיות זמינה:</h4>
+                    <div id="active-helpers" class="flex gap-4"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="parent-view" class="hidden-section">
+        <div class="max-w-xl mx-auto pink-card p-12">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-black">ניהול הורים</h2>
+                <p class="text-slate-400 text-sm font-bold uppercase tracking-widest mt-1">Math Control Panel</p>
+            </div>
+            
+            <div id="pending-requests" class="bg-rose-50 p-10 rounded-3xl text-center border-2 border-dashed border-rose-200">
+                <p class="text-rose-300 italic font-bold">אין בקשות עזרה כרגע...</p>
+            </div>
+            
+            <button onclick="showDashboard()" class="mt-12 block w-full text-center text-slate-400 text-sm font-bold hover:underline cursor-pointer">סגירת ניהול</button>
+        </div>
+    </section>
+</main>
+
+<div id="animal-modal" class="modal-overlay" onclick="closeAnimalModal()">
+    <div class="pink-card p-12 max-w-sm w-full text-center relative mx-6" onclick="event.stopPropagation()">
+        <div id="modal-emoji" class="text-8xl mb-8"></div>
+        <h3 id="modal-name" class="text-3xl font-black mb-2 text-slate-800"></h3>
+        <p id="modal-trait" class="text-pink-500 font-bold mb-6 italic text-lg"></p>
+        <div class="bg-pink-50/50 p-6 rounded-2xl">
+            <p id="modal-desc" class="text-slate-600 leading-relaxed text-right"></p>
+        </div>
+        <button onclick="closeAnimalModal()" class="mt-10 text-slate-400 font-bold underline text-sm">סגירה</button>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getFirestore, doc, onSnapshot, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Configuration
+    const firebaseConfig = JSON.parse(__firebase_config);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const dataRef = doc(db, 'apps', 'ofir_math_portal_vFinal');
+
+    // Animal Data & Traits
+    const animalData = {
+        fractions: [
+            { e: "🦉", n: "ינשוף השברים", t: "רואה הכל", d: "אוהב לעזור עם מכנים שונים. הוא יודע להכפיל את המכנה והמונה יחד כדי ליצור שברים שווים." },
+            { e: "🐧", n: "פינגווין הקרח", t: "מקרר מצבים", d: "יודע שהשוואת שברים זה כמו לחלק עוגה בקרח - ככל שהמכנה קטן יותר, החלק גדול יותר!" },
+            { e: "🐤", n: "אפרוח הצהוב", t: "סקרן וזריז", d: "תמיד שואל: אם יש לי חצי, וכופלים ב-3, כמה אפרוחים יהיו? (3 חצאים!)." },
+            { e: "🦆", n: "ברווז המים", t: "שוחה בזרם", d: "מומחה לחיבור שברים עם מכנה זהה. הוא פשוט מחבר את המונים ושוחה הלאה." },
+            { e: "🦢", n: "ברבור לבן", t: "אלגנטי ומדויק", d: "יודע לצמצם שברים לצורה היפה והפשוטה ביותר שלהם." },
+            { e: "🦩", n: "פלאמינגו", t: "עומד על רגל אחת", d: "מבין בשברים מדומים - כשהמונה כבד יותר מהמכנה, הוא מאזן הכל." },
+            { e: "🦜", n: "תוכי צבעוני", t: "חוזר על הכל", d: "עוזר לזכור את חוקי החשבון בשברים בעל פה." },
+            { e: "🦚", n: "טווס גאה", t: "מרהיב ביופיו", d: "מומחה לשברים עשרוניים שהופכים לשברים רגילים בסטייל." },
+            { e: "🕊️", n: "יונת שלום", t: "שקטה ורגועה", d: "עוזרת למצוא את המכנה המשותף הקטן ביותר בלי להתווכח." },
+            { e: "🦅", n: "עיט זהוב", t: "חד עין", d: "רואה את התוצאה של כפל שבר בשבר מקילומטרים." }
+        ],
+        numbers: [
+            { e: "🦊", n: "שועל חכם", t: "מפרק בעיות", d: "מומחה לחוק הפילוג. הוא יודע לפרק 12 ל-10 ועוד 2 כדי שיהיה קל לכפול." },
+            { e: "🐺", n: "זאב הערבות", t: "עקבי ומסודר", d: "יודע לבצע חיבור במאונך בלי לשכוח את ה'שארית' הקטנה למעלה." },
+            { e: "🐶", n: "כלבלב נאמן", t: "תמיד בשמחה", d: "מומחה לכפל בעשרות שלמות. פשוט מוסיפים אפס בסוף והזנב מכשכש!" },
+            { e: "🐱", n: "חתולת רחוב", t: "זריזה וערנית", d: "מחשבת מהר סדר פעולות חשבון - קודם כפל וחילוק, בסוף חיבור וחיסור." },
+            { e: "🦁", n: "אריה אמיץ", t: "מנהיג חזק", d: "לא מפחד משאלות מילוליות ארוכות. הוא מוצא את המספרים החשובים מיד." },
+            { e: "🐯", n: "נמר פסים", t: "מהיר כברק", d: "יודע לפתור חילוק ארוך בקפיצות של נמר." },
+            { e: "🐆", n: "צ'יטה", t: "שיא המהירות", d: "מחשבת כפל בעל פה תוך שניות לפני שמישהו מספיק להגיד 'חשבון'." },
+            { e: "🐻", n: "דוב גדול", t: "חזק ויציב", d: "מתמודד עם מספרים של אלפים ורבבות בלי להזיע." },
+            { e: "🐼", n: "פנדה רגועה", t: "סבלנית מאוד", d: "מומחית לחיסור עם 'פריטה'. היא עושה הכל לאט, שלב אחרי שלב." },
+            { e: "🐨", n: "קואלה", t: "מתוקה וחכמה", d: "אוהבת למיין מספרים לזוגיים ואי זוגיים בזמן שהיא נחה." }
+        ],
+        geometry: [
+            { e: "🐘", n: "פיל המהנדס", t: "בונה חזק", d: "יודע לפרק מצולע מורכב לשני מלבנים פשוטים כדי לחשב שטח." },
+            { e: "🦏", n: "קרנף חזק", t: "מדויק מאוד", d: "מומחה למציאת היקף - הוא פשוט הולך מסביב לכל הקירות ומודד כל סנטימטר." },
+            { e: "🦛", n: "היפופוטם", t: "רחב וגדול", d: "מומחה לשטח מלבן. 'אורך כפול רוחב' זה השיר האהוב עליו." },
+            { e: "🦒", n: "ג'ירפה גבוהה", t: "רואה רחוק", d: "מזהה זוויות ישרות בקלות מקצה הצוואר הארוך שלה." },
+            { e: "ZEBRA", n: "זברה", t: "מסודרת בפסים", d: "יודעת שבריבוע כל הצלעות שוות בדיוק, כמו הפסים השחורים והלבנים שלה." },
+            { e: "🐪", n: "גמל", t: "סבלני במדבר", d: "עוזר למדוד מרחקים ארוכים ושטחים גדולים בלי להתעייף." },
+            { e: "🦌", n: "צבי קל רגליים", t: "קליל ומהיר", d: "מבין איך לחשב שטח של משולש בתוך מלבן במהירות הבזק." },
+            { e: "🐇", n: "ארנב קופצני", t: "חרוץ", d: "סופר יחידות שטח בריבועים קטנים בקפיצות מדויקות." },
+            { e: "🐭", n: "עכבר קטן", t: "פיצפון וחכם", d: "מומחה לחישוב שטחים של צורות קטנות ומורכבות בפינות החדר." },
+            { e: "🐿️", n: "סנאי אספן", t: "אוסף הכל", d: "אוסף את כל אורכי הצלעות יחד כדי למצוא את ההיקף הכולל של הצורה." }
+        ]
+    };
+
+    const questions = {
+        fractions: [
+            { q: "1/4 + 2/4", a: "3/4", h: "במכנים זהים, מחברים רק את המונים (למעלה)." },
+            { q: "מה גדול: 1/2 או 1/3?", a: "1/2", h: "חשבי על פיצה: חצי פיצה גדולה יותר משליש פיצה." },
+            { q: "4 כפול 1/5", a: "4/5", h: "כופלים את המספר השלם (4) רק במונה (1)." },
+            { q: "1 - 1/3", a: "2/3", h: "שלם אחד הוא כמו 3/3. פשוט חסרי שליש אחד." }
+        ],
+        numbers: [
+            { q: "30 * 50", a: "1500", h: "כפלי 3 ב-5 והוסיפי שני אפסים בסוף." },
+            { q: "12 * 6 (פילוג)", a: "72", h: "פרקי את 12 ל-10 ול-2. עשי 10*6 ועוד 2*6." },
+            { q: "40 - 10 / 2", a: "35", h: "זכרי סדר פעולות: קודם כל עושים את החילוק!" }
+        ],
+        geometry: [
+            { q: "מלבן: אורך 6, רוחב 4. מה השטח?", a: "24", h: "שטח מלבן = אורך כפול רוחב." },
+            { q: "ריבוע: צלע 5. מה ההיקף?", a: "20", h: "היקף ריבוע = אורך הצלע כפול 4." }
+        ]
+    };
+
+    window.state = { coins: 0, stats: { fractions: 0, numbers: 0, geometry: 0 }, pending: null, hintActive: false };
+
+    const canvas = document.getElementById('drawing-canvas');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+    let currentColor = '#000000';
+
+    function initCanvas() {
+        const parent = canvas.parentElement;
+        canvas.width = parent.clientWidth;
+        canvas.height = parent.clientHeight;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 3;
+    }
+
+    function startDrawing(e) {
+        isDrawing = true;
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX || e.touches[0].clientX) - rect.left;
+        const y = (e.clientY || e.touches[0].clientY) - rect.top;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+    }
+
+    function draw(e) {
+        if (!isDrawing) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX || e.touches[0].clientX) - rect.left;
+        const y = (e.clientY || e.touches[0].clientY) - rect.top;
+        ctx.strokeStyle = currentColor;
+        ctx.lineTo(x, y);
+        ctx.stroke();
+    }
+
+    function stopDrawing() { isDrawing = false; }
+    window.clearCanvas = () => ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    async function init() {
+        onSnapshot(dataRef, (snap) => {
+            if (snap.exists()) {
+                window.state = { ...window.state, ...snap.data() };
+                render();
+            } else {
+                setDoc(dataRef, { coins: 0, stats: { fractions: 0, numbers: 0, geometry: 0 }, pending: null, hintActive: false });
+            }
+        });
+
+        initCanvas();
+        window.addEventListener('resize', initCanvas);
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        window.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e); });
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
+        canvas.addEventListener('touchend', stopDrawing);
+
+        document.querySelectorAll('.color-dot').forEach(dot => {
+            dot.onclick = (e) => {
+                document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+                dot.classList.add('active');
+                currentColor = dot.dataset.color;
+            };
+        });
+    }
+
+    function render() {
+        document.getElementById('stat-coins').innerText = window.state.coins;
+        let total = 0;
+        
+        Object.keys(animalData).forEach(subj => {
+            const count = window.state.stats[subj];
+            document.getElementById(`prog-${subj}`).innerText = `${count} תרגילים פתורים`;
+            
+            const unlockedCount = Math.floor(count / 10);
+            total += Math.min(unlockedCount, 10);
+            
+            const container = document.querySelector(`#shelf-${subj} .animal-container`);
+            container.innerHTML = '';
+            animalData[subj].forEach((data, i) => {
+                const div = document.createElement('div');
+                div.className = `animal-slot ${i < unlockedCount ? 'unlocked' : ''}`;
+                div.innerText = data.e;
+                if (i < unlockedCount) div.onclick = () => openAnimalModal(subj, i);
+                container.appendChild(div);
+            });
+        });
+
+        document.getElementById('total-animals-count').innerText = total;
+
+        const hintBox = document.getElementById('hint-box');
+        if (window.state.hintActive) {
+            hintBox.classList.remove('hidden-section');
+            document.getElementById('hint-text').innerText = window.currentQ.h;
+        } else {
+            hintBox.classList.add('hidden-section');
+        }
+
+        renderParentView();
+        renderActiveHelpers();
+    }
+
+    function renderActiveHelpers() {
+        const container = document.getElementById('active-helpers');
+        container.innerHTML = '';
+        if (!window.activeSubj) return;
+        
+        const unlockedCount = Math.floor(window.state.stats[window.activeSubj] / 10);
+        if (unlockedCount === 0) {
+            container.innerHTML = `<span class="text-slate-300 text-[10px] font-bold">פתרי 10 תרגילים כדי לפתוח עוזר ראשון</span>`;
+            return;
+        }
+
+        animalData[window.activeSubj].slice(0, unlockedCount).forEach(data => {
+            const btn = document.createElement('button');
+            btn.className = "bg-white w-14 h-14 rounded-2xl border-2 border-pink-50 shadow-sm text-2xl hover:scale-110 transition-transform active:bg-pink-50 flex items-center justify-center";
+            btn.innerText = data.e;
+            btn.title = `בקשי עזרה מ${data.n}`;
+            btn.onclick = () => requestHint(data.e);
+            container.appendChild(btn);
+        });
+    }
+
+    window.startTask = (subj) => {
+        window.activeSubj = subj;
+        switchView('exercise-view');
+        nextQ();
+        setTimeout(initCanvas, 100);
+    };
+
+    function nextQ() {
+        const list = questions[window.activeSubj];
+        window.currentQ = list[Math.floor(Math.random() * list.length)];
+        
+        // Render Vertical Fractions
+        let html = window.currentQ.q.split(' ').map(p => {
+            if (p.includes('/')) {
+                const [n, d] = p.split('/');
+                return `<span class="fraction"><span class="num">${n}</span><span class="den">${d}</span></span>`;
+            }
+            return p;
+        }).join(' ');
+
+        document.getElementById('question-display').innerHTML = html;
+        document.getElementById('answer-input').value = '';
+        updateDoc(dataRef, { hintActive: false, pending: null });
+    }
+
+    window.checkAnswer = async () => {
+        const input = document.getElementById('answer-input');
+        if (input.value.trim() === window.currentQ.a) {
+            input.style.color = '#10b981';
+            const newStats = { ...window.state.stats };
+            newStats[window.activeSubj]++;
+            await updateDoc(dataRef, { coins: window.state.coins + 15, stats: newStats });
+            setTimeout(() => {
+                input.style.color = 'inherit';
+                nextQ();
+                clearCanvas();
+            }, 1000);
+        } else {
+            input.classList.add('animate-bounce');
+            input.style.color = '#ef4444';
+            setTimeout(() => { input.classList.remove('animate-bounce'); input.style.color = 'inherit'; }, 500);
+        }
+    };
+
+    async function requestHint(emoji) {
+        await updateDoc(dataRef, { pending: emoji });
+    }
+
+    function renderParentView() {
+        const container = document.getElementById('pending-requests');
+        if (window.state.pending) {
+            container.innerHTML = `
+                <div class="space-y-8">
+                    <div class="text-8xl animate-bounce">${window.state.pending}</div>
+                    <p class="font-bold text-2xl text-slate-700 leading-tight">אופיר מבקשת עזרה!<br><span class="text-pink-500">לאשר לה רמז לתרגיל?</span></p>
+                    <button onclick="approveHint()" class="btn-action w-full py-6 text-2xl">אשרי רמז עכשיו</button>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `<p class="text-rose-300 italic font-bold">ממתין לבקשות מהשטח...</p>`;
+        }
+    }
+
+    window.approveHint = async () => {
+        await updateDoc(dataRef, { hintActive: true, pending: null });
+    };
+
+    window.openAnimalModal = (subj, i) => {
+        const data = animalData[subj][i];
+        document.getElementById('modal-emoji').innerText = data.e;
+        document.getElementById('modal-name').innerText = data.n;
+        document.getElementById('modal-trait').innerText = data.t;
+        document.getElementById('modal-desc').innerText = data.d;
+        document.getElementById('animal-modal').style.display = 'flex';
+    };
+
+    window.closeAnimalModal = () => document.getElementById('animal-modal').style.display = 'none';
+
+    function switchView(id) {
+        document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden-section'));
+        document.getElementById(id).classList.remove('hidden-section');
+    }
+
+    window.showDashboard = () => switchView('dashboard-view');
+    document.getElementById('parent-trigger').onclick = () => switchView('parent-view');
+
+    init();
+</script>
+</body>
+</html>
